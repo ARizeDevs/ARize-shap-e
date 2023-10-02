@@ -9,12 +9,85 @@ import os
 from dotenv import load_dotenv
 from shap_e.util.notebooks import decode_latent_mesh
 
-# from google.cloud import storage
+import pywavefront
+from pygltflib import GLTF2, Buffer, BufferView, Accessor, Scene, Node, Mesh, Primitive
 
 
 load_dotenv()
 
 app = Potassium("my_app")
+
+
+def obj_to_glb(obj_filename, glb_filename):
+    # Load OBJ using pywavefront
+    scene = pywavefront.Wavefront(obj_filename, collect_faces=True)
+
+    # Create a GLTF object
+    gltf = GLTF2()
+
+    # Create buffer for storing vertex and index data
+    vertices = []
+    indices = []
+    for name, mesh in scene.meshes.items():
+        vertices.extend(mesh.vertices)
+        indices.extend(mesh.faces)
+
+    # Create a new buffer and add it to the GLTF
+    buffer = Buffer(byteLength=len(vertices) * 4 + len(indices) * 2)
+    gltf.buffers.append(buffer)
+
+    # Create BufferView for vertices
+    vertex_buffer_view = BufferView(
+        buffer=0, byteOffset=0, byteLength=len(vertices) * 4, target=34962
+    )
+    gltf.bufferViews.append(vertex_buffer_view)
+
+    # Create BufferView for indices
+    index_buffer_view = BufferView(
+        buffer=0,
+        byteOffset=len(vertices) * 4,
+        byteLength=len(indices) * 2,
+        target=34963,
+    )
+    gltf.bufferViews.append(index_buffer_view)
+
+    # Create Accessor for vertices
+    vertex_accessor = Accessor(
+        bufferView=0,
+        byteOffset=0,
+        componentType=5126,
+        count=int(len(vertices) / 3),
+        type="VEC3",
+        max=list(map(max, zip(*[iter(vertices)] * 3))),
+        min=list(map(min, zip(*[iter(vertices)] * 3))),
+    )
+    gltf.accessors.append(vertex_accessor)
+
+    # Create Accessor for indices
+    index_accessor = Accessor(
+        bufferView=1,
+        byteOffset=0,
+        componentType=5123,
+        count=int(len(indices) / 3),
+        type="SCALAR",
+    )
+    gltf.accessors.append(index_accessor)
+
+    # Create Mesh
+    mesh = Mesh(primitives=[Primitive(attributes={"POSITION": 0}, indices=1)])
+    gltf.meshes.append(mesh)
+
+    # Create Node
+    node = Node(mesh=0)
+    gltf.nodes.append(node)
+
+    # Create Scene
+    scene = Scene(nodes=[0])
+    gltf.scenes.append(scene)
+    gltf.scene = 0
+
+    # Convert to binary GLB
+    gltf.save(glb_filename)
 
 
 # @app.init runs at startup, and loads models into the app's context
@@ -80,38 +153,18 @@ def handler(context: dict, request: Request) -> Response:
 
     print("3D asset generated for:" + prompt)
 
-    # # Load your GCP service account credentials
-    # credentials = {
-    #     "type": "service_account",
-    #     "project_id": os.getenv("GCS_PROJECT_ID"),
-    #     "private_key_id": os.getenv("GCS_PRIVATE_KEY_ID"),
-    #     "private_key": os.getenv("GCS_PRIVATE_KEY").replace("\\n", "\n"),
-    #     "client_email": os.getenv("GCS_CLIENT_EMAIL"),
-    #     "client_id": os.getenv("GCS_CLIENT_ID"),
-    #     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    #     "token_uri": "https://oauth2.googleapis.com/token",
-    #     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    #     "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/local-dev-david%40nomadic-mesh-390711.iam.gserviceaccount.com",
-    #     "universe_domain": "googleapis.com",
-    # }
+    # with open(filename, "rb") as f:
+    #     response = requests.put(signed_url, data=f)
 
-    # # Create a GCS client using the credentials
-    # storage_client = storage.Client.from_service_account_info(credentials)
+    # if response.status_code != 200:
+    #     print("Failed to upload to the signed URL")
+    #     return Response(json={"error": "Failed to upload 3D model"}, status=500)
 
-    # # Specify the bucket and file name
-    # bucket_name = "local-dev-david"
-    # directory_name = "shap_e"
+    # Convert the OBJ file to GLB
+    glb_filename = uuid_value + ".glb"
+    obj_to_glb(filename, glb_filename)
 
-    # # Create a new bucket object
-    # bucket = storage_client.bucket(bucket_name)
-
-    # blob_glb = bucket.blob(f"{directory_name}/{filename}")
-    # blob_glb.upload_from_filename(filename)
-
-    # s3 = boto3.client('s3', aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
-    # s3.upload_file(filename, 'flow-ai-hackathon', filename)
-
-    with open(filename, "rb") as f:
+    with open(glb_filename, "rb") as f:
         response = requests.put(signed_url, data=f)
 
     if response.status_code != 200:
@@ -120,7 +173,10 @@ def handler(context: dict, request: Request) -> Response:
 
     print("Uploaded using signed URL")
 
-    return Response(json={"status": "done", "fileName": filename}, status=200)
+    return Response(
+        json={"status": "done", "fileName": glb_filename, "signedUrl": signed_url},
+        status=200,
+    )
 
 
 if __name__ == "__main__":

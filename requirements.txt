@@ -1,5 +1,7 @@
 potassium>=0.0.9
 torch
+pywavefront
+pygltflib
 ipywidgets
 python-dotenv
 shap-e @ git+https://github.com/openai/shap-e.git@main

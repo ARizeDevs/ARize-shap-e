@@ -1,22 +1,32 @@
 {
-	"version": "1",
-	"inputs": [
-		{
-			"name": "prompt",
-			"type": "string",
-			"required": true,
-			"max": 2048,
-			"description": "The 3D model to generate."
-		}
-	],
-	"examples": [
-		{
-			"inputs": {
-				"prompt": "shark"
-			},
-			"output": {
-				"url" : "https://flow-ai-hackathon.s3.us-west-1.amazonaws.com/shark.obj"
-			}
-		}
-	]
+  "version": "1",
+  "inputs": [
+    {
+      "name": "prompt",
+      "type": "string",
+      "required": true,
+      "max": 2048,
+      "description": "The 3D model to generate."
+    },
+
+    {
+      "name": "signedUrl",
+      "type": "string",
+      "required": true,
+      "max": 2048,
+      "description": "GCS signed url to upload the model to."
+    }
+  ],
+  "examples": [
+    {
+      "inputs": {
+        "prompt": "shark"
+      },
+      "output": {
+        "status": "done",
+        "signedUrl": "https://storage.googleapis.com/...",
+        "filename": "452abc-58aa25.....glb"
+      }
+    }
+  ]
 }
