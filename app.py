@@ -24,6 +24,9 @@ def obj_to_glb(obj_filename, glb_filename):
         obj_filename, create_materials=True, collect_faces=True
     )
 
+    # Create a GLTF object
+    gltf = GLTF2()
+
     # Extract vertices and indices
     vertices = []
     indices = []
