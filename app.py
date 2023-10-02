@@ -20,17 +20,18 @@ app = Potassium("my_app")
 
 def obj_to_glb(obj_filename, glb_filename):
     # Load OBJ using pywavefront
-    scene = pywavefront.Wavefront(obj_filename, collect_faces=True)
+    scene = pywavefront.Wavefront(
+        obj_filename, create_materials=True, collect_faces=True
+    )
 
-    # Create a GLTF object
-    gltf = GLTF2()
-
-    # Create buffer for storing vertex and index data
+    # Extract vertices and indices
     vertices = []
     indices = []
     for name, mesh in scene.meshes.items():
-        vertices.extend(mesh.vertices)
-        indices.extend(mesh.faces)
+        vertices.extend(
+            mesh.materials[0].vertices
+        )  # assuming a single material for simplicity
+        indices.extend([i for i in range(len(vertices) // 3)])
 
     # Create a new buffer and add it to the GLTF
     buffer = Buffer(byteLength=len(vertices) * 4 + len(indices) * 2)
@@ -159,6 +160,8 @@ def handler(context: dict, request: Request) -> Response:
     # if response.status_code != 200:
     #     print("Failed to upload to the signed URL")
     #     return Response(json={"error": "Failed to upload 3D model"}, status=500)
+
+    print("Converting to GLB:" + prompt)
 
     # Convert the OBJ file to GLB
     glb_filename = uuid_value + ".glb"
