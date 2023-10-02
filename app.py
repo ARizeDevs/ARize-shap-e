@@ -12,7 +12,6 @@ from shap_e.util.notebooks import decode_latent_mesh
 import pywavefront
 from pygltflib import (
     GLTF2,
-    GLB,
     Buffer,
     BufferView,
     Accessor,
@@ -87,12 +86,12 @@ def obj_to_glb(obj_filename, glb_filename):
         # Add mesh to GLTF
         gltf.add_mesh(primitives=[primitive])
 
-    # Create GLB from GLTF
-    glb = GLB.from_gltf(gltf)
+    # Serialize the GLTF to bytes
+    gltf_bytes = gltf.tobytes()
 
-    # Save to file
+    # Convert the GLTF bytes to GLB
     with open(glb_filename, "wb") as f:
-        f.write(glb.tobytes())
+        f.write(gltf_bytes)
 
 
 # def obj_to_glb(obj_filename, glb_filename):
