@@ -120,7 +120,7 @@ def handler(context: dict, request: Request) -> Response:
 
     print("Uploaded using signed URL")
 
-    return Response(json={"status": "done"}, status=200)
+    return Response(json={"status": "done", "fileName": filename}, status=200)
 
 
 if __name__ == "__main__":
