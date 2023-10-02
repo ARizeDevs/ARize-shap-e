@@ -10,7 +10,17 @@ from dotenv import load_dotenv
 from shap_e.util.notebooks import decode_latent_mesh
 
 import pywavefront
-from pygltflib import GLTF2, Buffer, BufferView, Accessor, Scene, Node, Mesh, Primitive
+from pygltflib import (
+    GLTF2,
+    GLB,
+    Buffer,
+    BufferView,
+    Accessor,
+    Scene,
+    Node,
+    Mesh,
+    Primitive,
+)
 
 
 load_dotenv()
@@ -19,79 +29,147 @@ app = Potassium("my_app")
 
 
 def obj_to_glb(obj_filename, glb_filename):
-    # Load OBJ using pywavefront
-    scene = pywavefront.Wavefront(
-        obj_filename, create_materials=True, collect_faces=True
-    )
+    # Load OBJ
+    obj_data = pywavefront.Wavefront(obj_filename, collect_faces=True)
 
     # Create a GLTF object
     gltf = GLTF2()
 
-    # Extract vertices and indices
-    vertices = []
-    indices = []
-    for name, mesh in scene.meshes.items():
-        vertices.extend(
-            mesh.materials[0].vertices
-        )  # assuming a single material for simplicity
-        indices.extend([i for i in range(len(vertices) // 3)])
+    # Conversion process (this is a simplified example and might not handle all cases)
+    # For more complex models with materials and textures, additional processing would be required.
 
-    # Create a new buffer and add it to the GLTF
-    buffer = Buffer(byteLength=len(vertices) * 4 + len(indices) * 2)
-    gltf.buffers.append(buffer)
+    for name, mesh in obj_data.meshes.items():
+        buffer_data = []
 
-    # Create BufferView for vertices
-    vertex_buffer_view = BufferView(
-        buffer=0, byteOffset=0, byteLength=len(vertices) * 4, target=34962
-    )
-    gltf.bufferViews.append(vertex_buffer_view)
+        # Vertices
+        for vertex in mesh.vertices:
+            buffer_data.extend(vertex)
 
-    # Create BufferView for indices
-    index_buffer_view = BufferView(
-        buffer=0,
-        byteOffset=len(vertices) * 4,
-        byteLength=len(indices) * 2,
-        target=34963,
-    )
-    gltf.bufferViews.append(index_buffer_view)
+        # Create buffer view for vertex data
+        vertex_buffer_view = gltf.add_buffer_view(
+            byteLength=len(buffer_data) * 4, target=GLTF2.TARGET_ARRAY_BUFFER
+        )
 
-    # Create Accessor for vertices
-    vertex_accessor = Accessor(
-        bufferView=0,
-        byteOffset=0,
-        componentType=5126,
-        count=int(len(vertices) / 3),
-        type="VEC3",
-        max=list(map(max, zip(*[iter(vertices)] * 3))),
-        min=list(map(min, zip(*[iter(vertices)] * 3))),
-    )
-    gltf.accessors.append(vertex_accessor)
+        # Accessor for vertex data
+        vertex_accessor = gltf.add_accessor(
+            bufferView=vertex_buffer_view,
+            componentType=GLTF2.COMPONENT_FLOAT,
+            count=len(mesh.vertices),
+            type=GLTF2.TYPE_VEC3,
+            max=list(map(max, zip(*mesh.vertices))),
+            min=list(map(min, zip(*mesh.vertices))),
+        )
 
-    # Create Accessor for indices
-    index_accessor = Accessor(
-        bufferView=1,
-        byteOffset=0,
-        componentType=5123,
-        count=int(len(indices) / 3),
-        type="SCALAR",
-    )
-    gltf.accessors.append(index_accessor)
+        # Indices
+        indices_data = []
+        for face in mesh.faces:
+            indices_data.extend(face)
 
-    # Create Mesh
-    mesh = Mesh(primitives=[Primitive(attributes={"POSITION": 0}, indices=1)])
-    gltf.meshes.append(mesh)
+        # Create buffer view for indices data
+        indices_buffer_view = gltf.add_buffer_view(
+            byteLength=len(indices_data) * 2, target=GLTF2.TARGET_ELEMENT_ARRAY_BUFFER
+        )
 
-    # Create Node
-    node = Node(mesh=0)
-    gltf.nodes.append(node)
+        # Accessor for indices data
+        indices_accessor = gltf.add_accessor(
+            bufferView=indices_buffer_view,
+            componentType=GLTF2.COMPONENT_UNSIGNED_SHORT,
+            count=len(indices_data),
+            type=GLTF2.TYPE_SCALAR,
+        )
 
-    # Create Scene
-    scene = Scene(nodes=[0])
-    gltf.scenes.append(scene)
-    gltf.scene = 0
+        # Create mesh primitive
+        primitive = {
+            "attributes": {"POSITION": vertex_accessor},
+            "indices": indices_accessor,
+        }
 
-    # Convert to binary GLB
-    gltf.save(glb_filename)
+        # Add mesh to GLTF
+        gltf.add_mesh(primitives=[primitive])
+
+    # Create GLB from GLTF
+    glb = GLB.from_gltf(gltf)
+
+    # Save to file
+    with open(glb_filename, "wb") as f:
+        f.write(glb.tobytes())
+
+
+# def obj_to_glb(obj_filename, glb_filename):
+#     # Load OBJ using pywavefront
+#     scene = pywavefront.Wavefront(
+#         obj_filename, create_materials=True, collect_faces=True
+#     )
+
+#     # Create a GLTF object
+#     gltf = GLTF2()
+
+#     # Extract vertices and indices
+#     vertices = []
+#     indices = []
+#     for name, mesh in scene.meshes.items():
+#         if mesh.materials and len(mesh.materials) > 0 and mesh.materials[0].vertices:
+#             vertices.extend(mesh.materials[0].vertices)
+#             indices.extend([i for i in range(len(vertices) // 3)])
+#         else:
+#             print(f"Mesh '{name}' has no valid materials or vertices. Skipping...")
+
+#     # Create a new buffer and add it to the GLTF
+#     buffer = Buffer(byteLength=len(vertices) * 4 + len(indices) * 2)
+#     gltf.buffers.append(buffer)
+
+#     # Create BufferView for vertices
+#     vertex_buffer_view = BufferView(
+#         buffer=0, byteOffset=0, byteLength=len(vertices) * 4, target=34962
+#     )
+#     gltf.bufferViews.append(vertex_buffer_view)
+
+#     # Create BufferView for indices
+#     index_buffer_view = BufferView(
+#         buffer=0,
+#         byteOffset=len(vertices) * 4,
+#         byteLength=len(indices) * 2,
+#         target=34963,
+#     )
+#     gltf.bufferViews.append(index_buffer_view)
+
+#     # Create Accessor for vertices
+#     vertex_accessor = Accessor(
+#         bufferView=0,
+#         byteOffset=0,
+#         componentType=5126,
+#         count=int(len(vertices) / 3),
+#         type="VEC3",
+#         max=list(map(max, zip(*[iter(vertices)] * 3))),
+#         min=list(map(min, zip(*[iter(vertices)] * 3))),
+#     )
+#     gltf.accessors.append(vertex_accessor)
+
+#     # Create Accessor for indices
+#     index_accessor = Accessor(
+#         bufferView=1,
+#         byteOffset=0,
+#         componentType=5123,
+#         count=int(len(indices) / 3),
+#         type="SCALAR",
+#     )
+#     gltf.accessors.append(index_accessor)
+
+#     # Create Mesh
+#     mesh = Mesh(primitives=[Primitive(attributes={"POSITION": 0}, indices=1)])
+#     gltf.meshes.append(mesh)
+
+#     # Create Node
+#     node = Node(mesh=0)
+#     gltf.nodes.append(node)
+
+#     # Create Scene
+#     scene = Scene(nodes=[0])
+#     gltf.scenes.append(scene)
+#     gltf.scene = 0
+
+#     # Convert to binary GLB
+#     gltf.save(glb_filename)
 
 
 # @app.init runs at startup, and loads models into the app's context
