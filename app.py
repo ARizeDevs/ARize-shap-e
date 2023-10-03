@@ -1,13 +1,16 @@
 from potassium import Potassium, Request, Response
-import torch
-import uuid
+
+# import torch
+# import uuid
 import requests
-from shap_e.diffusion.sample import sample_latents
-from shap_e.diffusion.gaussian_diffusion import diffusion_from_config
-from shap_e.models.download import load_model, load_config
+
+# from shap_e.diffusion.sample import sample_latents
+# from shap_e.diffusion.gaussian_diffusion import diffusion_from_config
+# from shap_e.models.download import load_model, load_config
 import os
 from dotenv import load_dotenv
-from shap_e.util.notebooks import decode_latent_mesh
+
+# from shap_e.util.notebooks import decode_latent_mesh
 from model import Model
 
 
@@ -16,18 +19,22 @@ load_dotenv()
 app = Potassium("my_app")
 
 
-model_op = Model()
-
-
 # @app.init runs at startup, and loads models into the app's context
 @app.init
 def init():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    xm = load_model("transmitter", device=device)
-    model = load_model("text300M", device=device)
-    diffusion = diffusion_from_config(load_config("diffusion"))
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # xm = load_model("transmitter", device=device)
+    # model = load_model("text300M", device=device)
+    # diffusion = diffusion_from_config(load_config("diffusion"))
+    model_op = Model()
 
-    context = {"model": model, "diffusion": diffusion, "device": device, "xm": xm}
+    context = {
+        # "model": model,
+        # "diffusion": diffusion,
+        # "device": device,
+        # "xm": xm,
+        "model_op": model_op,
+    }
 
     return context
 
@@ -38,10 +45,13 @@ def handler(context: dict, request: Request) -> Response:
     arize_key = os.getenv("X_ARIZE_API_KEY")
     prompt = request.json.get("prompt")
     signed_url = request.json.get("signedUrl")
-    reqKey = request.json.get("key")
-    model = context.get("model")
-    diffusion = context.get("diffusion")
-    xm = context.get("xm")
+    # reqKey = request.json.get("key")
+    # model = context.get("model")
+    # diffusion = context.get("diffusion")
+    # xm = context.get("xm")
+    model_op = context.get("model_op")
+
+    print(f"Arize key: {arize_key}")
 
     # if reqKey:
     #     if reqKey != arize_key:
@@ -61,29 +71,29 @@ def handler(context: dict, request: Request) -> Response:
 
     print("Generating 3D model for: ", prompt)
 
-    batch_size = 1
-    guidance_scale = 15.0
+    # batch_size = 1
+    # guidance_scale = 15.0
 
-    latents = sample_latents(
-        batch_size=batch_size,
-        model=model,
-        diffusion=diffusion,
-        guidance_scale=guidance_scale,
-        model_kwargs=dict(texts=[prompt] * batch_size),
-        progress=True,
-        clip_denoised=True,
-        use_fp16=True,
-        use_karras=True,
-        karras_steps=64,
-        sigma_min=1e-3,
-        sigma_max=160,
-        s_churn=0,
-    )
+    # latents = sample_latents(
+    #     batch_size=batch_size,
+    #     model=model,
+    #     diffusion=diffusion,
+    #     guidance_scale=guidance_scale,
+    #     model_kwargs=dict(texts=[prompt] * batch_size),
+    #     progress=True,
+    #     clip_denoised=True,
+    #     use_fp16=True,
+    #     use_karras=True,
+    #     karras_steps=64,
+    #     sigma_min=1e-3,
+    #     sigma_max=160,
+    #     s_churn=0,
+    # )
 
     # uuid_value = str(uuid.uuid4())
     # filename = uuid_value + ".obj"
 
-    filename = model_op.run_text(prompt, 2147483647, guidance_scale, 64)
+    filename = model_op.run_text(prompt)
 
     print(filename)
 
