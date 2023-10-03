@@ -2,5 +2,9 @@ potassium>=0.0.9
 torch
 ipywidgets
 python-dotenv
+diffusers==0.21.2
+torchvision==0.15.1
+transformers==4.33.2
+trimesh==3.23.5
 shap-e @ git+https://github.com/openai/shap-e.git@main
 

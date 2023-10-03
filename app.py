@@ -8,6 +8,7 @@ from shap_e.models.download import load_model, load_config
 import os
 from dotenv import load_dotenv
 from shap_e.util.notebooks import decode_latent_mesh
+from model import Model
 
 
 load_dotenv()
@@ -76,12 +77,16 @@ def handler(context: dict, request: Request) -> Response:
         s_churn=0,
     )
 
-    uuid_value = str(uuid.uuid4())
-    filename = uuid_value + ".obj"
+    # uuid_value = str(uuid.uuid4())
+    # filename = uuid_value + ".obj"
 
-    t = decode_latent_mesh(xm, latents[0]).tri_mesh()
-    with open(filename, "w") as f:
-        t.write_obj(f)
+    filename = model.run_text(prompt, 2147483647, guidance_scale, 64)
+
+    print(filename)
+
+    # t = decode_latent_mesh(xm, latents[0]).tri_mesh()
+    # with open(filename, "w") as f:
+    #     t.write_obj(f)
 
     print("3D asset generated for:" + prompt)
 

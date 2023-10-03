@@ -1,9 +1,6 @@
 # Must use a Cuda version 11+
 FROM pytorch/pytorch:1.11.0-cuda11.3-cudnn8-runtime
 
-ARG AWS_ACCESS_KEY_ID
-ARG AWS_SECRET_ACCESS_KEY
-
 WORKDIR /
 
 # Install git
@@ -18,9 +15,6 @@ RUN pip3 install -r requirements.txt
 # (in this case we have a python script)
 ADD download.py .
 RUN python3 download.py
-
-ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-ENV AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 
 ADD . .
 
