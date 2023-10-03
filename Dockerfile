@@ -1,6 +1,9 @@
 # Must use a Cuda version 11+
 FROM pytorch/pytorch:1.11.0-cuda11.3-cudnn8-runtime
 
+
+ARG X_ARIZE_API_KEY
+
 WORKDIR /
 
 # Install git
@@ -15,6 +18,8 @@ RUN pip3 install -r requirements.txt
 # (in this case we have a python script)
 ADD download.py .
 RUN python3 download.py
+
+ENV X_ARIZE_API_KEY=${X_ARIZE_API_KEY}
 
 ADD . .
 
