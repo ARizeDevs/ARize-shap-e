@@ -34,11 +34,10 @@ def handler(context: dict, request: Request) -> Response:
     arize_key = os.getenv("X_ARIZE_API_KEY")
     prompt = request.json.get("prompt")
     signed_url = request.json.get("signedUrl")
+    reqKey = request.json.get("key")
     model = context.get("model")
     diffusion = context.get("diffusion")
     xm = context.get("xm")
-
-    reqKey = request.headers.get("arize")
 
     if reqKey:
         print("Arize key exists in the header")
