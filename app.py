@@ -25,7 +25,7 @@ def init():
 
 
 # @app.handler runs for every call
-@app.handler("/text-to-3d")
+@app.handler(route="/text-to-3d")
 def handler(context: dict, request: Request) -> Response:
     prompt = request.json.get("prompt")
     signed_url = request.json.get("signedUrl")
@@ -63,7 +63,7 @@ def handler(context: dict, request: Request) -> Response:
     )
 
 
-@app.handler("/image-to-3d")
+@app.handler(route="/image-to-3d")
 def image_handler(context: dict, request: Request) -> Response:
     image_url = request.json.get("imageUrl")
     signed_url = request.json.get("signedUrl")
