@@ -40,9 +40,8 @@ def handler(context: dict, request: Request) -> Response:
     xm = context.get("xm")
 
     if reqKey:
-        print("Arize key exists in the header")
         if reqKey != arize_key:
-            print("Arize key is not valid")
+            print(f"Arize key is not valid. sent key:{reqKey}, arize key:{arize_key}")
             return Response(json={"error": "Arize key is not valid"}, status=403)
     else:
         print("Arize key does not exist in the header")
