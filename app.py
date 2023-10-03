@@ -39,15 +39,15 @@ def handler(context: dict, request: Request) -> Response:
     diffusion = context.get("diffusion")
     xm = context.get("xm")
 
-    if reqKey:
-        if reqKey != arize_key:
-            print(f"Arize key is not valid. sent key:{reqKey}, arize key:{arize_key}")
-            return Response(json={"error": "Arize key is not valid"}, status=403)
-    else:
-        print("Arize key does not exist in the header")
-        return Response(
-            json={"error": "Arize key does not exist in the header"}, status=403
-        )
+    # if reqKey:
+    #     if reqKey != arize_key:
+    #         print(f"Arize key is not valid. sent key:{reqKey}, arize key:{arize_key}")
+    #         return Response(json={"error": "Arize key is not valid"}, status=403)
+    # else:
+    #     print("Arize key does not exist in the header")
+    #     return Response(
+    #         json={"error": "Arize key does not exist in the header"}, status=403
+    #     )
 
     if prompt is None:
         return Response(json={"error": "prompt not found"}, status=401)
