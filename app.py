@@ -16,6 +16,9 @@ load_dotenv()
 app = Potassium("my_app")
 
 
+model_op = Model()
+
+
 # @app.init runs at startup, and loads models into the app's context
 @app.init
 def init():
@@ -80,7 +83,7 @@ def handler(context: dict, request: Request) -> Response:
     # uuid_value = str(uuid.uuid4())
     # filename = uuid_value + ".obj"
 
-    filename = model.run_text(prompt, 2147483647, guidance_scale, 64)
+    filename = model_op.run_text(prompt, 2147483647, guidance_scale, 64)
 
     print(filename)
 
