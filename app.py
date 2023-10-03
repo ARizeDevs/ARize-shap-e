@@ -1,16 +1,9 @@
 from potassium import Potassium, Request, Response
-
-# import torch
-# import uuid
+from PIL import Image
+import io
 import requests
-
-# from shap_e.diffusion.sample import sample_latents
-# from shap_e.diffusion.gaussian_diffusion import diffusion_from_config
-# from shap_e.models.download import load_model, load_config
 import os
 from dotenv import load_dotenv
-
-# from shap_e.util.notebooks import decode_latent_mesh
 from model import Model
 
 
@@ -22,46 +15,24 @@ app = Potassium("my_app")
 # @app.init runs at startup, and loads models into the app's context
 @app.init
 def init():
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # xm = load_model("transmitter", device=device)
-    # model = load_model("text300M", device=device)
-    # diffusion = diffusion_from_config(load_config("diffusion"))
-    model_op = Model()
+    model = Model()
 
     context = {
-        # "model": model,
-        # "diffusion": diffusion,
-        # "device": device,
-        # "xm": xm,
-        "model_op": model_op,
+        "model": model,
     }
 
     return context
 
 
 # @app.handler runs for every call
-@app.handler()
+@app.handler("/text-to-3d")
 def handler(context: dict, request: Request) -> Response:
-    arize_key = os.getenv("X_ARIZE_API_KEY")
     prompt = request.json.get("prompt")
     signed_url = request.json.get("signedUrl")
-    # reqKey = request.json.get("key")
-    # model = context.get("model")
-    # diffusion = context.get("diffusion")
-    # xm = context.get("xm")
-    model_op = context.get("model_op")
-
-    print(f"Arize key: {arize_key}")
-
-    # if reqKey:
-    #     if reqKey != arize_key:
-    #         print(f"Arize key is not valid. sent key:{reqKey}, arize key:{arize_key}")
-    #         return Response(json={"error": "Arize key is not valid"}, status=403)
-    # else:
-    #     print("Arize key does not exist in the header")
-    #     return Response(
-    #         json={"error": "Arize key does not exist in the header"}, status=403
-    #     )
+    seeds = request.json.get("seeds", 2147483647)
+    guidance_scale = request.json.get("guidance_scale", 15)
+    steps = request.json.get("steps", 64)
+    model: Model = context.get("model")
 
     if prompt is None:
         return Response(json={"error": "prompt not found"}, status=401)
@@ -71,35 +42,9 @@ def handler(context: dict, request: Request) -> Response:
 
     print("Generating 3D model for: ", prompt)
 
-    # batch_size = 1
-    # guidance_scale = 15.0
-
-    # latents = sample_latents(
-    #     batch_size=batch_size,
-    #     model=model,
-    #     diffusion=diffusion,
-    #     guidance_scale=guidance_scale,
-    #     model_kwargs=dict(texts=[prompt] * batch_size),
-    #     progress=True,
-    #     clip_denoised=True,
-    #     use_fp16=True,
-    #     use_karras=True,
-    #     karras_steps=64,
-    #     sigma_min=1e-3,
-    #     sigma_max=160,
-    #     s_churn=0,
-    # )
-
-    # uuid_value = str(uuid.uuid4())
-    # filename = uuid_value + ".obj"
-
-    filename = model_op.run_text(prompt)
+    filename = model.run_text(prompt, seeds, guidance_scale, steps)
 
     print(filename)
-
-    # t = decode_latent_mesh(xm, latents[0]).tri_mesh()
-    # with open(filename, "w") as f:
-    #     t.write_obj(f)
 
     print("3D asset generated for:" + prompt)
 
@@ -114,6 +59,51 @@ def handler(context: dict, request: Request) -> Response:
 
     return Response(
         json={"status": "done", "signedUrl": signed_url},
+        status=200,
+    )
+
+
+@app.handler("/image-to-3d")
+def image_handler(context: dict, request: Request) -> Response:
+    image_url = request.json.get("imageUrl")
+    signed_url = request.json.get("signedUrl")
+    seed = request.json.get("seed", 0)
+    guidance_scale = request.json.get("guidance_scale", 3.0)
+    num_steps = request.json.get("num_steps", 64)
+    model: Model = context.get("model")
+
+    if image_url is None:
+        return Response(json={"error": "imageUrl not found"}, status=401)
+
+    print("Generating 3D model for: ", image_url)
+
+    # Download the image
+    try:
+        response = requests.get(image_url)
+        response.raise_for_status()
+        image = Image.open(io.BytesIO(response.content))
+    except requests.RequestException as e:
+        print(f"Failed to download image: {e}")
+        return Response(json={"error": "Failed to download image"}, status=500)
+    except Exception as e:
+        print(f"Failed to process image: {e}")
+        return Response(json={"error": "Failed to process image"}, status=500)
+
+    # Generate 3D model
+    filename = model.run_image(image, seed, guidance_scale, num_steps)
+
+    print("3D asset generated for:", image_url)
+
+    # [Optional] Upload the 3D model somewhere and get a signed URL, similar to the previous handler...
+    with open(filename, "rb") as f:
+        response = requests.put(signed_url, data=f)
+
+    if response.status_code != 200:
+        print("Failed to upload to the signed URL")
+        return Response(json={"error": "Failed to upload 3D model"}, status=500)
+
+    return Response(
+        json={"status": "done", "filename": filename},
         status=200,
     )
 
