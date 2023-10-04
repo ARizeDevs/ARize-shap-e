@@ -2,7 +2,7 @@
 FROM pytorch/pytorch:1.11.0-cuda11.3-cudnn8-runtime
 
 
-ARG X_ARIZE_API_KEY
+# ARG X_ARIZE_API_KEY
 
 WORKDIR /
 
@@ -19,7 +19,7 @@ RUN pip3 install -r requirements.txt
 ADD download.py .
 RUN python3 download.py
 
-ENV X_ARIZE_API_KEY=${X_ARIZE_API_KEY}
+# ENV X_ARIZE_API_KEY=${X_ARIZE_API_KEY}
 
 ADD . .
 
